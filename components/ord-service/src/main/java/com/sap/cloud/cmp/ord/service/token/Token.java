@@ -26,6 +26,7 @@ public class Token {
 
     private static final String TOKEN_CLIENT_ID_KEY = "tokenClientID";
     private static final String TOKEN_REGION_KEY = "region";
+    private static final String CONSUMER_ID_KEY = "consumerID";
 
     private static final String SCOPES_KEY = "scopes";
     private final String INTERNAL_VISIBILITY_SCOPE = "internal_visibility:read";
@@ -33,18 +34,23 @@ public class Token {
     // In case single tenant is present (discovery based on tenancy) in the call, we use this default formation claim
     public final static String DEFAULT_FORMATION_ID_CLAIM = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 
+    public static final String EMPTY_TENANT_DUE_TO_MISSING_CONSUMER_ID = "emptyTenant";
+
     private static final ObjectMapper mapper = new ObjectMapper();
 
     private SubscriptionHelper subscriptionHelper;
     private JsonNode content;
-
     private Set<String> formationIDsClaims;
+    public String applicationTenantId;
 
-    public Token(SubscriptionHelper subscriptionHelper, String idTokenEncoded) throws JsonMappingException, JsonProcessingException {
+    private String callerID;
+
+    public Token(SubscriptionHelper subscriptionHelper, String idTokenEncoded, String applicationTenantId) throws JsonMappingException, JsonProcessingException {
         this.subscriptionHelper = subscriptionHelper;
         String idTokenDecoded = decodeIDToken(idTokenEncoded);
         this.content = mapper.readTree(idTokenDecoded);
         this.formationIDsClaims = new HashSet<>();
+        this.applicationTenantId = applicationTenantId;
     }
 
     public String extractTenant() {
@@ -52,11 +58,31 @@ public class Token {
 
         String providerTenantID = "";
         try {
+            SelfRegisteredRepository repo = subscriptionHelper.getRepo();
+
             JsonNode tenantsTree = mapper.readTree(unescapedTenants);
 
             String tenant = tenantsTree.path(CONSUMER_TENANT_KEY).asText();
             providerTenantID = tenantsTree.path(PROVIDER_TENANT_KEY).asText();
             if (providerTenantID == null || providerTenantID.isEmpty() || providerTenantID.equals(tenant)) {
+                if (applicationTenantId != null && !applicationTenantId.isEmpty()) {
+                    logger.info("Application local tenant ID is provided through header");
+                    String consumerID = content.get(CONSUMER_ID_KEY).asText();
+                    if (consumerID == null || consumerID.isEmpty()) {
+                        logger.error("consumer ID could not be empty");
+                        return Token.EMPTY_TENANT_DUE_TO_MISSING_CONSUMER_ID;
+                    }
+                    logger.info("Checking for application with local tenant ID {} and app template ID {}", applicationTenantId, consumerID);
+                    String appId = repo.findApplicationByLocalTenantIdAndApplicationTemplateId(applicationTenantId, consumerID);
+                    if (appId != null && !appId.isEmpty()) {
+                        this.callerID = appId;
+                        Set<String> formationIDs = repo.getFormationsThatApplicationIsPartOf(appId);
+                        this.formationIDsClaims.addAll(formationIDs);
+                        return tenant;
+                    }
+                    return tenant;
+                }
+
                 this.formationIDsClaims.add(DEFAULT_FORMATION_ID_CLAIM);
                 return tenant;
             }
@@ -79,12 +105,12 @@ public class Token {
                 return "";
             }
 
-            SelfRegisteredRepository repo = subscriptionHelper.getRepo();
             Set<String> runtimeIds = repo.findSelfRegisteredRuntimesByLabels(providerTenantID, subscriptionHelper.getSelfRegKey(),
                 tokenClientId, subscriptionHelper.getRegionKey(), tokenRegion);
             for (String runtimeId : runtimeIds) {
                 String runtimeSubscriptionAvailableInTenant = repo.getRuntimeSubscriptionAvailableInTenant(tenant, runtimeId);
                 if (runtimeSubscriptionAvailableInTenant != null && !runtimeSubscriptionAvailableInTenant.isEmpty()) {
+                    this.callerID = runtimeSubscriptionAvailableInTenant;
                     Set<String> formationIDs = repo.getFormationsThatRuntimeSubscriptionAvailableInTenantIsPartOf(runtimeSubscriptionAvailableInTenant);
                     this.formationIDsClaims.addAll(formationIDs);
                     return tenant;
@@ -96,7 +122,8 @@ public class Token {
             for (String appTemplateId : appTemplateIds) {
                 String applicationSubscriptionAvailableInTenant = repo.getApplicationSubscriptionAvailableInTenant(tenant, appTemplateId);
                 if (applicationSubscriptionAvailableInTenant != null && !applicationSubscriptionAvailableInTenant.isEmpty()) {
-                    Set<String> formationIDs = repo.getFormationsThatApplicationSubscriptionAvailableInTenantIsPartOf(applicationSubscriptionAvailableInTenant);
+                    this.callerID = applicationSubscriptionAvailableInTenant;
+                    Set<String> formationIDs = repo.getFormationsThatApplicationIsPartOf(applicationSubscriptionAvailableInTenant);
                     this.formationIDsClaims.addAll(formationIDs);
                     return tenant;
                 }
@@ -115,6 +142,10 @@ public class Token {
 
     public Set<String> getFormationIDsClaims() {
         return this.formationIDsClaims;
+    }
+
+    public String getCallerID() {
+        return this.callerID;
     }
 
     private String decodeIDToken(String idTokenEncoded) {

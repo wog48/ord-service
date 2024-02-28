@@ -1,19 +1,20 @@
 package com.sap.cloud.cmp.ord.service.storage.model;
 
-import com.sap.olingo.jpa.metadata.core.edm.annotation.EdmIgnore;
-import com.sap.olingo.jpa.metadata.core.edm.annotation.EdmProtectedBy;
-import org.eclipse.persistence.annotations.Convert;
-import org.eclipse.persistence.annotations.TypeConverter;
-
-import javax.persistence.*;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import jakarta.persistence.*;
+import org.eclipse.persistence.annotations.Convert;
+import org.eclipse.persistence.annotations.TypeConverter;
+
+import com.sap.olingo.jpa.metadata.core.edm.annotation.EdmIgnore;
+import com.sap.olingo.jpa.metadata.core.edm.annotation.EdmProtectedBy;
+
 @Entity(name = "systemInstance")
 @Table(name = "tenants_apps")
 public class SystemInstanceEntity {
-    @javax.persistence.Id
+    @Id
     @Column(name = "id")
     @Convert("uuidConverter")
     @TypeConverter(name = "uuidConverter", dataType = Object.class, objectType = UUID.class)
@@ -63,6 +64,19 @@ public class SystemInstanceEntity {
 
     @OneToMany(mappedBy = "systemInstance", fetch = FetchType.LAZY)
     private Set<IntegrationDependencyEntity> integrationDependencies;
+
+    @OneToMany(mappedBy = "systemInstance", fetch = FetchType.LAZY)
+    private Set<DataProductEntity> dataProducts;
+
+    @OneToMany(mappedBy = "systemInstance", fetch = FetchType.LAZY)
+    private Set<APIEntity> apis;
+
+    @OneToMany(mappedBy = "systemInstance", fetch = FetchType.LAZY)
+    private Set<EventEntity> events;
+
+    @Embedded
+    @EdmProtectedBy(name = "caller_id", path = "targetId")
+    private FormationDetails formationDetails;
 
     @EdmProtectedBy(name = "tenant_id")
     @EdmIgnore

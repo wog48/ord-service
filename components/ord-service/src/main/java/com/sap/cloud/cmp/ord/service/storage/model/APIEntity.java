@@ -5,8 +5,8 @@ import com.sap.olingo.jpa.metadata.core.edm.annotation.EdmProtectedBy;
 import org.eclipse.persistence.annotations.Convert;
 import org.eclipse.persistence.annotations.TypeConverter;
 
-import javax.persistence.*;
-import javax.validation.constraints.NotNull;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -14,7 +14,7 @@ import java.util.UUID;
 @Entity(name = "api")
 @Table(name = "tenants_apis")
 public class APIEntity {
-    @javax.persistence.Id
+    @Id
     @Column(name = "id")
     @Convert("uuidConverter")
     @TypeConverter(name = "uuidConverter", dataType = Object.class, objectType = UUID.class)
@@ -151,6 +151,16 @@ public class APIEntity {
     @Embedded
     private Extensible extensible;
 
+    @EdmIgnore
+    @Column(name = "app_id", length = 256)
+    @Convert("uuidConverter")
+    @TypeConverter(name = "uuidConverter", dataType = Object.class, objectType = UUID.class)
+    private UUID appId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "app_id", insertable = false, updatable = false)
+    private SystemInstanceEntity systemInstance;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "package_id", insertable = false, updatable = false)
     private PackageEntity pkg;
@@ -186,4 +196,10 @@ public class APIEntity {
 
     @Column(name = "deprecation_date")
     private String deprecationDate;
+
+    @Column(name = "responsible")
+    private String responsible;
+
+    @Column(name = "usage")
+    private String usage;
 }

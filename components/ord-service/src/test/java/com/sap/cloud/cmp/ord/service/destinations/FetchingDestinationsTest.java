@@ -19,8 +19,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.Arrays;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import com.sap.cloud.cmp.ord.service.token.SubscriptionHelper;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.junit.After;
 import org.junit.Before;
@@ -46,9 +47,8 @@ import com.sap.cloud.cmp.ord.service.filter.DestinationForceReloadFilter;
 import com.sap.cloud.cmp.ord.service.filter.DestinationSensitiveDataFilter;
 import com.sap.cloud.cmp.ord.service.token.Token;
 import com.sap.cloud.cmp.ord.service.token.TokenParser;
-import com.sap.olingo.jpa.processor.core.api.JPAODataCRUDContextAccess;
-import com.sap.olingo.jpa.processor.core.api.JPAODataGetHandler;
-import com.sap.olingo.jpa.processor.core.processor.JPAODataRequestContextImpl;
+import com.sap.olingo.jpa.processor.core.api.JPAODataRequestHandler;
+import com.sap.olingo.jpa.processor.core.api.JPAODataSessionContextAccess;
 
 
 @RunWith(SpringRunner.class)
@@ -70,10 +70,13 @@ public class FetchingDestinationsTest {
     private TokenParser tokenParser;
 
     @Mock
-    private JPAODataCRUDContextAccess serviceContext;
+    private JPAODataSessionContextAccess serviceContext;
 
     @Mock
     private DestinationFetcherClient destsFetcherClient;
+
+    @Mock
+    private SubscriptionHelper subscriptionHelper;
 
     @InjectMocks
     private ODataController odataController;
@@ -148,7 +151,7 @@ public class FetchingDestinationsTest {
 
     @Test
     public void testReloadFilter_ReturnsInternalServerError_WhenCallToDestinationFetcherFails() throws Exception {
-        when(tokenParser.fromRequest(any(HttpServletRequest.class))).thenReturn(new Token(null, TOKEN_VALUE));
+        when(tokenParser.fromRequest(any(HttpServletRequest.class))).thenReturn(new Token(subscriptionHelper, TOKEN_VALUE, null));
         doThrow(new RestClientResponseException("Request failed",
             HttpStatus.BAD_REQUEST.value(), HttpStatus.BAD_REQUEST.getReasonPhrase(),
             null, null, null)
@@ -167,7 +170,7 @@ public class FetchingDestinationsTest {
     @Test
     public void testReloadFilter_ReturnsODataResponse_WhenCallToDestinationFetcherSucceeds() throws Exception {
         String odataResponse = "{}";
-        when(tokenParser.fromRequest(any(HttpServletRequest.class))).thenReturn(new Token(null, TOKEN_VALUE));
+        when(tokenParser.fromRequest(any(HttpServletRequest.class))).thenReturn(new Token(subscriptionHelper, TOKEN_VALUE, null));
 
         TestLogic testLogic = () -> {
             mvc.perform(
@@ -233,7 +236,7 @@ public class FetchingDestinationsTest {
 
     @Test
     public void testSensitiveDataFilter_ReturnsInternalServerError_WhenCallToDestinationFetcherFails() throws Exception {
-        when(tokenParser.fromRequest(any(HttpServletRequest.class))).thenReturn(new Token(null, TOKEN_VALUE));
+        when(tokenParser.fromRequest(any(HttpServletRequest.class))).thenReturn(new Token(subscriptionHelper, TOKEN_VALUE, null));
 
         String odataResponse =
         "{" +
@@ -264,7 +267,7 @@ public class FetchingDestinationsTest {
 
      @Test
      public void testSensitiveDataFilter_ReturnsDestinationsWithSensitiveDataWhereAvailableInXML() throws Exception {
-         when(tokenParser.fromRequest(any(HttpServletRequest.class))).thenReturn(new Token(null, TOKEN_VALUE));
+         when(tokenParser.fromRequest(any(HttpServletRequest.class))).thenReturn(new Token(subscriptionHelper, TOKEN_VALUE, null));
 
          String odataResponse =
          "<feed>" +
@@ -313,7 +316,7 @@ public class FetchingDestinationsTest {
 
     @Test
     public void testSensitiveDataFilter_ReturnsDestinationsWithSensitiveDataWhereAvailableInJSON() throws Exception {
-        when(tokenParser.fromRequest(any(HttpServletRequest.class))).thenReturn(new Token(null, TOKEN_VALUE));
+        when(tokenParser.fromRequest(any(HttpServletRequest.class))).thenReturn(new Token(subscriptionHelper, TOKEN_VALUE, null));
 
         String odataResponse =
         "{" +
@@ -373,9 +376,9 @@ public class FetchingDestinationsTest {
     }
 
     private void runTest(String odataResult, ResponseType responseType, TestLogic fn) throws Exception {
-        try (MockedConstruction<JPAODataGetHandler> mocked = mockConstruction(JPAODataGetHandler.class,
+
+        try (MockedConstruction<JPAODataRequestHandler> mocked = mockConstruction(JPAODataRequestHandler.class,
         (mock, context) -> {
-            when(mock.getJPAODataRequestContext()).thenReturn(new JPAODataRequestContextImpl());
 
             doAnswer(invocation -> {
                 HttpServletResponse response = invocation.getArgument(1);
