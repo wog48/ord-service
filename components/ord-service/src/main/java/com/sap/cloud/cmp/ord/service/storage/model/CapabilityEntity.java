@@ -3,21 +3,22 @@ package com.sap.cloud.cmp.ord.service.storage.model;
 import java.util.List;
 import java.util.UUID;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumns;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.CollectionTable;
 import org.eclipse.persistence.annotations.Convert;
 import org.eclipse.persistence.annotations.TypeConverter;
 
 import com.sap.olingo.jpa.metadata.core.edm.annotation.EdmIgnore;
 import com.sap.olingo.jpa.metadata.core.edm.annotation.EdmProtectedBy;
 
-import jakarta.persistence.CollectionTable;
-import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 
 @Entity(name = "capability")
@@ -29,24 +30,21 @@ public class CapabilityEntity {
     @TypeConverter(name = "uuidConverter", dataType = Object.class, objectType = UUID.class)
     private UUID Id;
 
-    @Column(name = "package_id")
+    @Column(name = "package_id", nullable = false)
     @Convert("uuidConverter")
     @TypeConverter(name = "uuidConverter", dataType = Object.class, objectType = UUID.class)
-    @NotNull
     private UUID partOfPackage;
 
-    @Column(name = "name", length = 256)
-    @NotNull
+    @Column(name = "name", length = 256, nullable = false)
     private String title;
 
     @Column(name = "description", length = Integer.MAX_VALUE)
     private String description;
 
-    @Column(name = "ord_id", length = 256)
+    @Column(name = "ord_id", length = 256, nullable = false)
     private String ordId;
 
-    @Column(name = "type", length = 256)
-    @NotNull
+    @Column(name = "type", length = 256, nullable = false)
     private String type;
 
     @Column(name = "custom_type", length = Integer.MAX_VALUE)
@@ -73,16 +71,18 @@ public class CapabilityEntity {
     @CollectionTable(name = "links_capabilities", joinColumns = @JoinColumn(name = "capability_id"))
     private List<Link> links;
 
-    @Column(name = "release_status")
-    @NotNull
+    @Column(name = "release_status", nullable = false)
     private String releaseStatus;
+
+    @Column(name = "version_value", nullable = false)
+    private String version;
 
     @ElementCollection
     @CollectionTable(name = "ord_labels_capabilities", joinColumns = @JoinColumn(name = "capability_id"))
     private List<Label> labels;
 
     @EdmProtectedBy(name = "visibility_scope")
-    @Column(name = "visibility")
+    @Column(name = "visibility", nullable = false)
     private String visibility;
 
     @ElementCollection
@@ -101,7 +101,10 @@ public class CapabilityEntity {
     private List<CapabilityDefinition> definitions;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "package_id", insertable = false, updatable = false)
+    @JoinColumns({
+            @JoinColumn(name = "package_id", referencedColumnName = "id", insertable = false, updatable = false),
+            @JoinColumn(name = "formation_id", referencedColumnName = "formation_id", insertable = false, updatable = false),
+    })
     private PackageEntity pkg;
 
     @EdmIgnore
@@ -111,7 +114,10 @@ public class CapabilityEntity {
     private UUID appId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "app_id", insertable = false, updatable = false)
+    @JoinColumns({
+            @JoinColumn(name = "app_id", referencedColumnName = "id", insertable = false, updatable = false),
+            @JoinColumn(name = "formation_id", referencedColumnName = "formation_id", insertable = false, updatable = false),
+    })
     private SystemInstanceEntity systemInstance;
 
     @EdmProtectedBy(name = "tenant_id")

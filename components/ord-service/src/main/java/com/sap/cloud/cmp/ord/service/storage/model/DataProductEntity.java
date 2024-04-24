@@ -27,7 +27,10 @@ public class DataProductEntity {
     private UUID appId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "app_id", insertable = false, updatable = false)
+    @JoinColumns({
+            @JoinColumn(name = "app_id", referencedColumnName = "id", insertable = false, updatable = false),
+            @JoinColumn(name = "formation_id", referencedColumnName = "formation_id", insertable = false, updatable = false),
+    })
     private SystemInstanceEntity systemInstance;
 
     @EdmProtectedBy(name = "tenant_id")
@@ -44,7 +47,7 @@ public class DataProductEntity {
     @TypeConverter(name = "uuidConverter", dataType = Object.class, objectType = UUID.class)
     private UUID formationID;
 
-    @Column(name = "ord_id", length = 256)
+    @Column(name = "ord_id", length = 256, nullable = false)
     private String ordId;
 
     @Column(name = "local_tenant_id", length = 256)
@@ -54,8 +57,7 @@ public class DataProductEntity {
     @CollectionTable(name = "correlation_ids_data_products", joinColumns = @JoinColumn(name = "data_product_id", referencedColumnName= "id"))
     private List<ArrayElement> correlationIds;
 
-    @Column(name = "title", length = 256)
-    @NotNull
+    @Column(name = "title", length = 256, nullable = false)
     private String title;
 
     @Column(name = "short_description", length = 256)
@@ -64,25 +66,26 @@ public class DataProductEntity {
     @Column(name = "description", length = Integer.MAX_VALUE)
     private String description;
 
-    @Column(name = "package_id")
+    @Column(name = "package_id", nullable = false)
     @Convert("uuidConverter")
     @TypeConverter(name = "uuidConverter", dataType = Object.class, objectType = UUID.class)
-    @NotNull
     private UUID partOfPackage;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "package_id", insertable = false, updatable = false)
+    @JoinColumns({
+            @JoinColumn(name = "package_id", referencedColumnName = "id", insertable = false, updatable = false),
+            @JoinColumn(name = "formation_id", referencedColumnName = "formation_id", insertable = false, updatable = false),
+    })
     private PackageEntity pkg;
 
     @Column(name = "last_update")
     private String lastUpdate;
 
     @EdmProtectedBy(name = "visibility_scope")
-    @Column(name = "visibility")
+    @Column(name = "visibility", nullable = false)
     private String visibility;
 
-    @Column(name = "release_status")
-    @NotNull
+    @Column(name = "release_status", nullable = false)
     private String releaseStatus;
 
     @Column(name = "disabled")
@@ -102,10 +105,10 @@ public class DataProductEntity {
     @CollectionTable(name = "changelog_entries_data_products", joinColumns = @JoinColumn(name = "data_product_id"))
     private List<ChangelogEntry> changelogEntries;
 
-    @Column(name = "type")
+    @Column(name = "type", nullable = false)
     private String type;
 
-    @Column(name = "category")
+    @Column(name = "category", nullable = false)
     private String category;
 
     @ElementCollection
@@ -118,9 +121,10 @@ public class DataProductEntity {
 
     @ElementCollection
     @CollectionTable(name = "output_ports_data_products", joinColumns = @JoinColumn(name = "data_product_id"))
+    @Column(name = "output_ports", nullable = false)
     private List<OutputPort> outputPorts;
 
-    @Column(name = "responsible")
+    @Column(name = "responsible", nullable = false)
     private String responsible;
 
     @ElementCollection
@@ -160,6 +164,6 @@ public class DataProductEntity {
     @Column(name = "system_instance_aware")
     private boolean systemInstanceAware;
 
-    @Column(name = "version_value")
+    @Column(name = "version_value", nullable = false)
     private String version;
 }

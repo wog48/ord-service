@@ -4,25 +4,26 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumns;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Embedded;
 import org.eclipse.persistence.annotations.Convert;
 import org.eclipse.persistence.annotations.TypeConverter;
 
 import com.sap.olingo.jpa.metadata.core.edm.annotation.EdmIgnore;
 import com.sap.olingo.jpa.metadata.core.edm.annotation.EdmProtectedBy;
 
-import jakarta.persistence.CollectionTable;
-import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
-import jakarta.persistence.Embedded;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 
 @Entity(name = "event")
@@ -34,27 +35,26 @@ public class EventEntity {
     @TypeConverter(name = "uuidConverter", dataType = Object.class, objectType = UUID.class)
     private UUID Id;
 
-    @Column(name = "ord_id", length = 256)
+    @Column(name = "ord_id", length = 256, nullable = false)
     private String ordId;
 
-    @Column(name = "name", length = 256)
-    @NotNull
+    @Column(name = "name", length = 256, nullable = false)
     private String title;
 
-    @Column(name = "short_description", length = 256)
+    @Column(name = "short_description", length = 256, nullable = false)
     private String shortDescription;
 
-    @Column(name = "description", length = Integer.MAX_VALUE)
+    @Column(name = "description", length = Integer.MAX_VALUE, nullable = false)
     private String description;
 
     @EdmProtectedBy(name = "visibility_scope")
-    @Column(name = "visibility")
+    @Column(name = "visibility", nullable = false)
     private String visibility;
 
     @Column(name = "disabled")
     private boolean disabled;
 
-    @Column(name = "version_value")
+    @Column(name = "version_value", nullable = false)
     private String version;
 
     @Column(name = "system_instance_aware")
@@ -94,7 +94,10 @@ public class EventEntity {
     private UUID appId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "app_id", insertable = false, updatable = false)
+    @JoinColumns({
+            @JoinColumn(name = "app_id", referencedColumnName = "id", insertable = false, updatable = false),
+            @JoinColumn(name = "formation_id", referencedColumnName = "formation_id", insertable = false, updatable = false),
+    })
     private SystemInstanceEntity systemInstance;
 
     @OneToMany(mappedBy = "eventResource", fetch = FetchType.LAZY)
@@ -104,10 +107,9 @@ public class EventEntity {
     @CollectionTable(name = "changelog_entries_event_definitions", joinColumns = @JoinColumn(name = "event_definition_id"))
     private List<ChangelogEntry> changelogEntries;
 
-    @Column(name = "package_id")
+    @Column(name = "package_id", nullable = false)
     @Convert("uuidConverter")
     @TypeConverter(name = "uuidConverter", dataType = Object.class, objectType = UUID.class)
-    @NotNull
     private UUID partOfPackage;
 
     @ElementCollection
@@ -134,8 +136,7 @@ public class EventEntity {
     @CollectionTable(name = "industries_event_definitions", joinColumns = @JoinColumn(name = "event_definition_id"))
     private List<ArrayElement> industry;
 
-    @Column(name = "release_status")
-    @NotNull
+    @Column(name = "release_status", nullable = false)
     private String releaseStatus;
 
     @Column(name = "sunset_date")
@@ -180,21 +181,38 @@ public class EventEntity {
     private String deprecationDate;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "package_id", insertable = false, updatable = false)
+    @JoinColumns({
+            @JoinColumn(name = "package_id", referencedColumnName = "id", insertable = false, updatable = false),
+            @JoinColumn(name = "formation_id", referencedColumnName = "formation_id", insertable = false, updatable = false),
+    })
     private PackageEntity pkg;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
-            name = "bundle_references",
-            joinColumns = @JoinColumn(name = "event_def_id"),
-            inverseJoinColumns = @JoinColumn(name = "bundle_id"))
+            name = "tenants_event_bundle_reference",
+            joinColumns = {
+                    @JoinColumn(name = "event_def_id", referencedColumnName = "id"),
+                    @JoinColumn(name = "formation_id", referencedColumnName = "formation_id"),
+            },
+            inverseJoinColumns = {
+                    @JoinColumn(name = "bundle_id", referencedColumnName = "id"),
+                    @JoinColumn(name = "formation_id", referencedColumnName = "formation_id"),
+            }
+    )
     private Set<BundleEntity> consumptionBundles;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "event_product",
-            joinColumns = {@JoinColumn(name = "event_definition_id")},
-            inverseJoinColumns = {@JoinColumn(name = "product_id")})
+            joinColumns = {
+                    @JoinColumn(name = "event_definition_id", referencedColumnName = "id"),
+                    @JoinColumn(name = "formation_id", referencedColumnName = "formation_id"),
+            },
+            inverseJoinColumns = {
+                    @JoinColumn(name = "product_id", referencedColumnName = "id"),
+                    @JoinColumn(name = "formation_id", referencedColumnName = "formation_id"),
+            }
+    )
     private Set<ProductEntity> products;
 
     @Column(name = "responsible")

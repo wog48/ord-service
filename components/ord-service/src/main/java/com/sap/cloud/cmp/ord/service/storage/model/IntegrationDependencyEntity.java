@@ -4,22 +4,23 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumns;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.OneToMany;
 import org.eclipse.persistence.annotations.Convert;
 import org.eclipse.persistence.annotations.TypeConverter;
 
 import com.sap.olingo.jpa.metadata.core.edm.annotation.EdmIgnore;
 import com.sap.olingo.jpa.metadata.core.edm.annotation.EdmProtectedBy;
 
-import jakarta.persistence.CollectionTable;
-import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 
 @Entity(name = "integrationDependency")
@@ -37,8 +38,11 @@ public class IntegrationDependencyEntity {
     @TypeConverter(name = "uuidConverter", dataType = Object.class, objectType = UUID.class)
     private UUID appId;
 
+    @JoinColumns({
+            @JoinColumn(name = "app_id", referencedColumnName = "id", insertable = false, updatable = false),
+            @JoinColumn(name = "formation_id", referencedColumnName = "formation_id", insertable = false, updatable = false),
+    })
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "app_id", insertable = false, updatable = false)
     private SystemInstanceEntity systemInstance;
 
     @EdmProtectedBy(name = "tenant_id")
@@ -55,7 +59,7 @@ public class IntegrationDependencyEntity {
     @TypeConverter(name = "uuidConverter", dataType = Object.class, objectType = UUID.class)
     private UUID formationID;
 
-    @Column(name = "ord_id", length = 256)
+    @Column(name = "ord_id", length = 256, nullable = false)
     private String ordId;
 
     @Column(name = "local_tenant_id", length = 256)
@@ -65,7 +69,7 @@ public class IntegrationDependencyEntity {
     @CollectionTable(name = "correlation_ids_integration_dependencies", joinColumns = @JoinColumn(name = "integration_dependency_id", referencedColumnName= "id"))
     private List<ArrayElement> correlationIds;
 
-    @Column(name = "title", length = 256)
+    @Column(name = "title", length = 256, nullable = false)
     private String title;
 
     @Column(name = "short_description", length = 256)
@@ -74,25 +78,26 @@ public class IntegrationDependencyEntity {
     @Column(name = "description", length = Integer.MAX_VALUE)
     private String description;
 
-    @Column(name = "package_id")
+    @Column(name = "package_id", nullable = false)
     @Convert("uuidConverter")
     @TypeConverter(name = "uuidConverter", dataType = Object.class, objectType = UUID.class)
-    @NotNull
     private UUID partOfPackage;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "package_id", insertable = false, updatable = false)
+    @JoinColumns({
+            @JoinColumn(name = "package_id", referencedColumnName = "id", insertable = false, updatable = false),
+            @JoinColumn(name = "formation_id", referencedColumnName = "formation_id", insertable = false, updatable = false),
+    })
     private PackageEntity pkg;
 
     @Column(name = "last_update")
     private String lastUpdate;
 
     @EdmProtectedBy(name = "visibility_scope")
-    @Column(name = "visibility")
+    @Column(name = "visibility", nullable = false)
     private String visibility;
 
-    @Column(name = "release_status")
-    @NotNull
+    @Column(name = "release_status", nullable = false)
     private String releaseStatus;
 
     @Column(name = "sunset_date")
@@ -102,8 +107,7 @@ public class IntegrationDependencyEntity {
     @CollectionTable(name = "integration_dependencies_successors", joinColumns = @JoinColumn(name = "integration_dependency_id"))
     private List<ArrayElement> successors;
 
-    @Column(name = "mandatory")
-    @NotNull
+    @Column(name = "mandatory", nullable = false)
     private boolean mandatory;
 
     @ElementCollection
@@ -126,7 +130,7 @@ public class IntegrationDependencyEntity {
     @CollectionTable(name = "ord_documentation_labels_integration_dependencies", joinColumns = @JoinColumn(name = "integration_dependency_id"))
     private List<Label> documentationLabels;
 
-    @Column(name = "version_value")
+    @Column(name = "version_value", nullable = false)
     private String version;
 
     @OneToMany(mappedBy = "integrationDependency", fetch = FetchType.LAZY)

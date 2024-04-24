@@ -32,29 +32,26 @@ public class ProductEntity {
     @TypeConverter(name = "uuidConverter", dataType = Object.class, objectType = UUID.class)
     private UUID Id;
 
-    @Column(name = "ord_id", length = 256)
-    @NotNull
+    @Column(name = "ord_id", length = 256, nullable = false)
     private String ordId;
 
-    @Column(name = "title", length = 256)
-    @NotNull
+    @Column(name = "title", length = 256, nullable = false)
     private String title;
 
-    @Column(name = "short_description", length = 256)
-    @NotNull
+    @Column(name = "short_description", length = 256, nullable = false)
     private String shortDescription;
 
     @Column(name = "description", length = Integer.MAX_VALUE)
     private String description;
 
-    @Column(name = "vendor")
-    @NotNull
+    @Column(name = "vendor", nullable = false)
     @EdmIgnore
     private String vendorReference;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumns({
             @JoinColumn(name = "vendor", referencedColumnName= "ord_id", insertable = false, updatable = false),
+            @JoinColumn(name = "formation_id", referencedColumnName = "formation_id", insertable = false, updatable = false),
     })
     private VendorEntity vendor;
 
@@ -65,7 +62,10 @@ public class ProductEntity {
     private UUID appId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "app_id", insertable = false, updatable = false)
+    @JoinColumns({
+            @JoinColumn(name = "app_id", referencedColumnName = "id", insertable = false, updatable = false),
+            @JoinColumn(name = "formation_id", referencedColumnName = "formation_id", insertable = false, updatable = false),
+    })
     private SystemInstanceEntity systemInstance;
 
     @Column(name = "parent", length = 256)
